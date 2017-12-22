@@ -1,7 +1,9 @@
 HEADERS += Passwords.h
+HEADERS += Dialog.h
 
 SOURCES += main.cpp
 SOURCES += Passwords.cpp
+SOURCES += Dialog.cpp
 
 CONFIG += debug console
 

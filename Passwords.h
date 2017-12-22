@@ -5,7 +5,7 @@
 
 class Passwords:public QWidget{
 public:
-	Passwords();
+	Passwords(const std::string&);
 };
 
 #endif // PASSWORDS_H

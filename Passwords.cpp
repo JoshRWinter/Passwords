@@ -3,8 +3,8 @@
 
 #include "Passwords.h"
 
-Passwords::Passwords(){
-	setWindowTitle("PasswordsQT");
+Passwords::Passwords(const std::string &passwd){
+	setWindowTitle("PasswordsQt");
 	resize(400, 600);
 
 	QVBoxLayout *vbox = new QVBoxLayout;
