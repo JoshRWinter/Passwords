@@ -37,7 +37,7 @@ std::vector<Password> Manager::read(const std::string &name, const std::string &
 	return entries;
 }
 
-bool Manager::generate(const std::string &path){
+bool Manager::generate(const std::string &path, const std::string &master){
 	std::ofstream out(path, std::ofstream::binary);
 
 	return !!out;

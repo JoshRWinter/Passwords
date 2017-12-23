@@ -28,8 +28,18 @@ int run(QApplication &app){
 		mgr.open(master);
 
 		Passwords passwords(mgr);
+		passwords.show();
+
+		return app.exec();
+
 	}catch(const Manager::NotFound&){
-		if(!Manager::generate(get_db_path())){
+		// ask user for initial master password
+		NewMaster newm;
+		if(!newm.exec())
+			return 1;
+		const std::string master = newm.password();
+
+		if(!Manager::generate(get_db_path(), master)){
 			QMessageBox::critical(NULL, "Error", ("Could not generate the database at \"" + get_db_path() + "\"!").c_str());
 			return 1;
 		}
@@ -38,10 +48,10 @@ int run(QApplication &app){
 		return run(app);
 	}catch(const Manager::Corrupt&){
 		QMessageBox::critical(NULL, "Error", ("The Passwords database at \"" + get_db_path() + "\" appears to be corrupt.").c_str());
-		return 2;
+		return 1;
 	}
 
-	return app.exec();
+	return 1;
 }
 
 #ifndef _WIN32

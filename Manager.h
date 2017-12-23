@@ -24,7 +24,7 @@ class Manager{
 public:
 	Manager(const std::string&);
 	void open(const std::string&);
-	static bool generate(const std::string&);
+	static bool generate(const std::string&, const std::string &master);
 
 private:
 	static std::vector<Password> read(const std::string&, const std::string&);
