@@ -4,6 +4,8 @@
 #include <QDialog>
 #include <QLineEdit>
 
+#include "Manager.h"
+
 // ask for master password
 class Greeter:public QDialog{
 public:
@@ -24,4 +26,12 @@ private:
 	std::string master;
 };
 
+class AddPassword:public QDialog{
+public:
+	AddPassword();
+	Password password()const;
+private:
+	QLineEdit *name;
+	QLineEdit *pass;
+};
 #endif // DIALOG_H

@@ -77,3 +77,43 @@ NewMaster::NewMaster(){
 std::string NewMaster::password()const{
 	return master;
 }
+
+AddPassword::AddPassword(){
+	auto form = new QFormLayout;
+	auto vbox = new QVBoxLayout;
+	auto hbox = new QHBoxLayout;
+	setLayout(vbox);
+
+	name = new QLineEdit;
+	pass = new QLineEdit;
+	name->setToolTip("The service that the password is associated with (e.g. Facebook)");
+	pass->setToolTip("The password");
+	auto ok = new QPushButton("OK");
+	auto cancel = new QPushButton("Cancel");
+
+	QObject::connect(ok, &QPushButton::clicked, [this](){
+		const QString trimmed_name = name->text().trimmed();
+		if(trimmed_name.length() == 0){
+			QMessageBox::critical(this, "Error", "You cannot leave the Name field blank");
+		}
+		else
+			accept();
+	});
+
+	QObject::connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
+
+	form->addRow("Name", name);
+	form->addRow("Password", pass);
+	hbox->addWidget(ok);
+	hbox->addWidget(cancel);
+	vbox->addLayout(form);
+	vbox->addLayout(hbox);
+}
+
+Password AddPassword::password()const{
+	Password pw;
+	pw.set_name(name->text().trimmed().toStdString());
+	pw.set_password(pass->text().toStdString());
+
+	return pw;
+}

@@ -15,6 +15,52 @@ void Manager::open(const std::string &master){
 	entries = Manager::read(dbname, master);
 }
 
+const std::vector<Password> &Manager::get()const{
+	return entries;
+}
+
+void Manager::add(const Password &pw){
+	// make sure it doesn't already exist
+	for(const Password &pass : entries){
+		if(pass.name() == pw.name())
+			throw ManagerException("There is already an entry for \"" + pass.name() + "\" in the database!");
+	}
+
+	entries.push_back(pw);
+}
+
+void Manager::remove(const Password &pw){
+	// find it
+	for(auto it = entries.begin(); it != entries.end();){
+		if(pw == *it){
+			it = entries.erase(it);
+			continue;
+		}
+
+		++it;
+	}
+
+	// couldn't find it
+	throw ManagerException("Could not remove, because that name/password combo does not exist!");
+}
+
+Password &Manager::edit(const Password &pw){
+	// find it
+	for(Password &pass : entries){
+		if(pw == pass)
+			return pass;
+	}
+
+	// couldn't find it
+	throw ManagerException("Could not edit, because that name/password combo does not exist!");
+}
+
+bool Manager::generate(const std::string &path, const std::string &master){
+	std::ofstream out(path, std::ofstream::binary);
+
+	return !!out;
+}
+
 std::vector<Password> Manager::read(const std::string &name, const std::string &master){
 	std::vector<Password> entries;
 
@@ -37,10 +83,8 @@ std::vector<Password> Manager::read(const std::string &name, const std::string &
 	return entries;
 }
 
-bool Manager::generate(const std::string &path, const std::string &master){
-	std::ofstream out(path, std::ofstream::binary);
-
-	return !!out;
+bool Password::operator==(const Password &rhs)const{
+	return nm == rhs.nm && pass == rhs.pass;
 }
 
 std::string Password::name()const{

@@ -6,6 +6,7 @@
 
 class Password{
 public:
+	bool operator==(const Password&)const;
 	std::string name()const;
 	std::string password()const;
 	void set_name(const std::string&);
@@ -24,6 +25,10 @@ class Manager{
 public:
 	Manager(const std::string&);
 	void open(const std::string&);
+	const std::vector<Password> &get()const;
+	void add(const Password&);
+	void remove(const Password&);
+	Password &edit(const Password&);
 	static bool generate(const std::string&, const std::string &master);
 
 private:
@@ -45,6 +50,17 @@ public:
 		virtual const char *what()const noexcept{
 			return "file is corrupt";
 		}
+	};
+
+	class ManagerException:public std::exception{
+	public:
+		ManagerException(const std::string &error)
+			:reason(error){}
+		virtual const char *what()const noexcept{
+			return reason.c_str();
+		}
+	private:
+		const std::string reason;
 	};
 };
 

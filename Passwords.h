@@ -2,6 +2,7 @@
 #define PASSWORDS_H
 
 #include <QWidget>
+#include <QListWidget>
 
 #include "Manager.h"
 
@@ -10,6 +11,13 @@ public:
 	Passwords(Manager&);
 
 private:
+	void add();
+	void edit();
+	void remove();
+	void refresh();
+
+	QListWidget *list;
+
 	Manager &manager;
 };
 
