@@ -80,11 +80,14 @@ std::string NewMaster::password()const{
 	return master;
 }
 
-AddPassword::AddPassword(){
+AddPassword::AddPassword(const std::string *nm, const std::string *pw){
 	const char *const nametip = "The service that the password is associated with (e.g. Facebook)";
 	const char *const passtip = "The password";
 
-	setWindowTitle("Add a new Password");
+	if(nm || pw)
+		setWindowTitle("Edit Password");
+	else
+		setWindowTitle("Add a new Password");
 	resize(350, 0);
 
 	auto form = new QFormLayout;
@@ -96,6 +99,8 @@ AddPassword::AddPassword(){
 	auto passlabel = new QLabel("Password");
 	name = new QLineEdit;
 	pass = new QLineEdit;
+	name->setText(nm ? nm->c_str() : "");
+	pass->setText(pw ? pw->c_str() : "");
 	namelabel->setToolTip(nametip);
 	passlabel->setToolTip(passtip);
 	name->setToolTip(nametip);

@@ -27,8 +27,8 @@ public:
 	void open(const std::string&);
 	const std::vector<Password> &get()const;
 	void add(const Password&);
-	void remove(const Password&);
-	Password &edit(const Password&);
+	Password &edit(const std::string&);
+	void remove(const std::string&);
 	static bool generate(const std::string&, const std::string &master);
 
 private:

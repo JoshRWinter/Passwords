@@ -1,3 +1,4 @@
+#include <iostream>
 #include <fstream>
 
 #include "Manager.h"
@@ -29,30 +30,32 @@ void Manager::add(const Password &pw){
 	entries.push_back(pw);
 }
 
-void Manager::remove(const Password &pw){
+Password &Manager::edit(const std::string &name){
+	// find it
+	for(Password &pass : entries){
+		if(name == pass.name())
+			return pass;
+	}
+
+	// couldn't find it
+	throw ManagerException("Could not edit, because that name/password combo does not exist!");
+}
+
+void Manager::remove(const std::string &name){
 	// find it
 	for(auto it = entries.begin(); it != entries.end();){
-		if(pw == *it){
+		if(name == (*it).name()){
 			it = entries.erase(it);
-			continue;
+			return;
 		}
+		else
+			std::cout << "name: " << name << " does not equal " << (*it).name() << std::endl;
 
 		++it;
 	}
 
 	// couldn't find it
 	throw ManagerException("Could not remove, because that name/password combo does not exist!");
-}
-
-Password &Manager::edit(const Password &pw){
-	// find it
-	for(Password &pass : entries){
-		if(pw == pass)
-			return pass;
-	}
-
-	// couldn't find it
-	throw ManagerException("Could not edit, because that name/password combo does not exist!");
 }
 
 bool Manager::generate(const std::string &path, const std::string &master){

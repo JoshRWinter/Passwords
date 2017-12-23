@@ -28,7 +28,7 @@ private:
 
 class AddPassword:public QDialog{
 public:
-	AddPassword();
+	AddPassword(const std::string*, const std::string*);
 	Password password()const;
 private:
 	QLineEdit *name;
