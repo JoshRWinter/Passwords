@@ -3,6 +3,7 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QMessageBox>
+#include <QLabel>
 
 #include "Dialog.h"
 
@@ -35,6 +36,7 @@ std::string Greeter::password()const{
 }
 
 NewMaster::NewMaster(){
+	setWindowTitle("Create a new Master Password");
 	resize(300, 0);
 
 	auto vbox = new QVBoxLayout;
@@ -79,15 +81,25 @@ std::string NewMaster::password()const{
 }
 
 AddPassword::AddPassword(){
+	const char *const nametip = "The service that the password is associated with (e.g. Facebook)";
+	const char *const passtip = "The password";
+
+	setWindowTitle("Add a new Password");
+	resize(350, 0);
+
 	auto form = new QFormLayout;
 	auto vbox = new QVBoxLayout;
 	auto hbox = new QHBoxLayout;
 	setLayout(vbox);
 
+	auto namelabel = new QLabel("Name");
+	auto passlabel = new QLabel("Password");
 	name = new QLineEdit;
 	pass = new QLineEdit;
-	name->setToolTip("The service that the password is associated with (e.g. Facebook)");
-	pass->setToolTip("The password");
+	namelabel->setToolTip(nametip);
+	passlabel->setToolTip(passtip);
+	name->setToolTip(nametip);
+	pass->setToolTip(passtip);
 	auto ok = new QPushButton("OK");
 	auto cancel = new QPushButton("Cancel");
 
@@ -102,8 +114,8 @@ AddPassword::AddPassword(){
 
 	QObject::connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
 
-	form->addRow("Name", name);
-	form->addRow("Password", pass);
+	form->addRow(namelabel, name);
+	form->addRow(passlabel, pass);
 	hbox->addWidget(ok);
 	hbox->addWidget(cancel);
 	vbox->addLayout(form);
