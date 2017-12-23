@@ -28,13 +28,27 @@ void Manager::add(const Password &pw){
 	}
 
 	entries.push_back(pw);
+	save();
 }
 
-Password &Manager::edit(const std::string &name){
+const Password &Manager::find(const std::string &name)const{
+	for(const Password &pass : entries){
+		if(pass.name() == name)
+			return pass;
+	}
+
+	throw ManagerException("Could not find a password with name \"" + name + "\"");
+}
+
+void Manager::edit(const std::string &name, const std::string &newname, const std::string &newpass){
 	// find it
 	for(Password &pass : entries){
-		if(name == pass.name())
-			return pass;
+		if(name == pass.name()){
+			pass.set_name(newname);
+			pass.set_password(newpass);
+			save();
+			return;
+		}
 	}
 
 	// couldn't find it
@@ -46,6 +60,7 @@ void Manager::remove(const std::string &name){
 	for(auto it = entries.begin(); it != entries.end();){
 		if(name == (*it).name()){
 			it = entries.erase(it);
+			save();
 			return;
 		}
 		else
@@ -62,6 +77,19 @@ bool Manager::generate(const std::string &path, const std::string &master){
 	std::ofstream out(path, std::ofstream::binary);
 
 	return !!out;
+}
+
+void Manager::save()const{
+	std::string data;
+	for(const Password &pw : entries){
+		data += pw.serialize();
+	}
+
+	std::ofstream out(dbname, std::ofstream::binary);
+	if(!out)
+		throw ManagerException("Could not open \"" + dbname + "\" for writing!");
+
+	out << data;
 }
 
 std::vector<Password> Manager::read(const std::string &name, const std::string &master){
@@ -130,10 +158,10 @@ void Password::deserialize(const std::string &line){
 				// split
 				switch(field){
 				case 0:
-					nm = line.substr(start, i - start);
+					nm = Password::strip(line.substr(start, i - start));
 					break;
 				case 1:
-					pass = line.substr(start, i - start);
+					pass = Password::strip(line.substr(start, i - start));
 					break;
 				}
 
@@ -152,7 +180,7 @@ std::string Password::escape(const std::string &field){
 	for(unsigned i = 0; i < escaped.length(); ++i){
 		const char c = escaped.at(i);
 
-		if(c == ','){
+		if(c == ',' || c == '\\'){
 			escaped.insert(escaped.begin() + i, '\\');
 			++i;
 			continue;
@@ -160,4 +188,16 @@ std::string Password::escape(const std::string &field){
 	}
 
 	return escaped;
+}
+
+std::string Password::strip(const std::string &field){
+	std::string stripped = field;
+	for(unsigned i = 0; i < stripped.size(); ++i){
+		if(stripped.at(i) == '\\'){
+			stripped.erase(stripped.begin() + i);
+			continue;
+		}
+	}
+
+	return stripped;
 }

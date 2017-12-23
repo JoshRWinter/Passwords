@@ -16,6 +16,7 @@ public:
 
 private:
 	static std::string escape(const std::string&);
+	static std::string strip(const std::string&);
 
 	std::string nm;
 	std::string pass;
@@ -27,11 +28,13 @@ public:
 	void open(const std::string&);
 	const std::vector<Password> &get()const;
 	void add(const Password&);
-	Password &edit(const std::string&);
+	const Password &find(const std::string&)const;
+	void edit(const std::string&, const std::string&, const std::string&);
 	void remove(const std::string&);
 	static bool generate(const std::string&, const std::string &master);
 
 private:
+	void save()const;
 	static std::vector<Password> read(const std::string&, const std::string&);
 
 	const std::string dbname;

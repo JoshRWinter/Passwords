@@ -55,12 +55,13 @@ void Passwords::edit(){
 		if(item == NULL)
 			return;
 
-		Password &pw = manager.edit(item->text().toStdString());
+		const Password &pw = manager.find(item->text().toStdString());
 		const std::string name = pw.name();
 		const std::string pass = pw.password();
 		AddPassword editpass(&name, &pass);
 		if(editpass.exec()){
-			pw = editpass.password();
+			const Password &passwd = editpass.password();
+			manager.edit(name, passwd.name(), passwd.password());
 			refresh();
 		}
 	}catch(const Manager::ManagerException &e){
