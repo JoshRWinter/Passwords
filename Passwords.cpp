@@ -3,7 +3,10 @@
 
 #include "Passwords.h"
 
-Passwords::Passwords(const std::string &passwd){
+
+Passwords::Passwords(Manager &mgr)
+	:manager(mgr)
+{
 	setWindowTitle("PasswordsQt");
 	resize(400, 600);
 

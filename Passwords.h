@@ -3,9 +3,14 @@
 
 #include <QWidget>
 
+#include "Manager.h"
+
 class Passwords:public QWidget{
 public:
-	Passwords(const std::string&);
+	Passwords(Manager&);
+
+private:
+	Manager &manager;
 };
 
 #endif // PASSWORDS_H
