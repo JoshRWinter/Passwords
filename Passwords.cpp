@@ -24,6 +24,7 @@ Passwords::Passwords(Manager &mgr)
 	QObject::connect(add, &QPushButton::clicked, this, &Passwords::add);
 	QObject::connect(edit, &QPushButton::clicked, this, &Passwords::edit);
 	QObject::connect(remove, &QPushButton::clicked, this, &Passwords::remove);
+	QObject::connect(list, &QListWidget::itemDoubleClicked, this, &Passwords::view);
 
 	hbox->addWidget(add);
 	hbox->addWidget(edit);
@@ -82,6 +83,12 @@ void Passwords::remove(){
 			QMessageBox::critical(this, "Database Error", e.what());
 		}
 	}
+}
+
+void Passwords::view(const QListWidgetItem *item){
+	const Password &passwd = manager.find(item->text().toStdString());
+	ViewPassword vp(passwd);
+	vp.exec();
 }
 
 void Passwords::refresh(){

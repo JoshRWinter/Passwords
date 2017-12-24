@@ -34,4 +34,10 @@ private:
 	QLineEdit *name;
 	QLineEdit *pass;
 };
+
+class ViewPassword:public QDialog{
+public:
+	ViewPassword(const Password&);
+};
+
 #endif // DIALOG_H

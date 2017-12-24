@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <QLabel>
+#include <QTimer>
 
 #include "Dialog.h"
 
@@ -133,4 +134,33 @@ Password AddPassword::password()const{
 	pw.set_password(pass->text().toStdString());
 
 	return pw;
+}
+
+ViewPassword::ViewPassword(const Password &passwd){
+	const char *const copyto = "Copy to clipboard";
+	const char *const copied = "Copied";
+
+	setWindowTitle(passwd.name().c_str());
+
+	auto vbox = new QVBoxLayout;
+	auto hbox = new QHBoxLayout;
+	setLayout(vbox);
+
+	auto namelabel = new QLabel(("Name: " + passwd.name()).c_str());
+	auto passlabel = new QLabel("Password:");
+	auto passfield = new QLineEdit(passwd.password().c_str());
+	passfield->setReadOnly(true);
+	auto copytoclipboard = new QPushButton(copyto);
+	QObject::connect(copytoclipboard, &QPushButton::clicked, [this, copytoclipboard, copyto, copied]{
+		copytoclipboard->setText(copied);
+		QTimer::singleShot(1000, this, [copytoclipboard, copyto, copied]{
+			copytoclipboard->setText(copyto);
+		});
+	});
+
+	hbox->addWidget(passlabel);
+	hbox->addWidget(passfield);
+	vbox->addWidget(namelabel);
+	vbox->addLayout(hbox);
+	vbox->addWidget(copytoclipboard);
 }

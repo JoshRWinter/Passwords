@@ -14,6 +14,7 @@ private:
 	void add();
 	void edit();
 	void remove();
+	void view(const QListWidgetItem*);
 	void refresh();
 
 	QListWidget *list;
