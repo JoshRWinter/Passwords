@@ -10,11 +10,12 @@ class Passwords:public QWidget{
 public:
 	Passwords(Manager&);
 	Passwords(const Passwords&) = delete;
-	void refresh();
+	void refresh(const std::string& = "");
 
 private:
 	void add();
 	void view(const QListWidgetItem*);
+	static std::string to_lower(const std::string&);
 
 	QListWidget *list;
 
