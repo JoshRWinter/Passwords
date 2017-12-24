@@ -5,6 +5,7 @@
 #include <QLineEdit>
 
 #include "Manager.h"
+#include "Passwords.h"
 
 // ask for master password
 class Greeter:public QDialog{
@@ -37,7 +38,7 @@ private:
 
 class ViewPassword:public QDialog{
 public:
-	ViewPassword(const Password&);
+	ViewPassword(const Password&, Passwords&, Manager&);
 };
 
 #endif // DIALOG_H

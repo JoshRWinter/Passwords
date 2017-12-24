@@ -9,13 +9,12 @@
 class Passwords:public QWidget{
 public:
 	Passwords(Manager&);
+	Passwords(const Passwords&) = delete;
+	void refresh();
 
 private:
 	void add();
-	void edit();
-	void remove();
 	void view(const QListWidgetItem*);
-	void refresh();
 
 	QListWidget *list;
 

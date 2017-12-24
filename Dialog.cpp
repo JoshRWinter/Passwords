@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QLabel>
 #include <QTimer>
+#include <QSpacerItem>
 
 #include "Dialog.h"
 
@@ -136,14 +137,16 @@ Password AddPassword::password()const{
 	return pw;
 }
 
-ViewPassword::ViewPassword(const Password &passwd){
+ViewPassword::ViewPassword(const Password &passwd, Passwords &parent, Manager &manager){
 	const char *const copyto = "Copy to clipboard";
 	const char *const copied = "Copied";
 
+	resize(350, 0);
 	setWindowTitle(passwd.name().c_str());
 
 	auto vbox = new QVBoxLayout;
 	auto hbox = new QHBoxLayout;
+	auto editdelete = new QHBoxLayout;
 	setLayout(vbox);
 
 	auto namelabel = new QLabel(("Name: " + passwd.name()).c_str());
@@ -151,6 +154,9 @@ ViewPassword::ViewPassword(const Password &passwd){
 	auto passfield = new QLineEdit(passwd.password().c_str());
 	passfield->setReadOnly(true);
 	auto copytoclipboard = new QPushButton(copyto);
+	auto edit = new QPushButton("Edit");
+	auto remove = new QPushButton("Delete");
+
 	QObject::connect(copytoclipboard, &QPushButton::clicked, [this, copytoclipboard, copyto, copied]{
 		copytoclipboard->setText(copied);
 		QTimer::singleShot(1000, this, [copytoclipboard, copyto, copied]{
@@ -158,9 +164,44 @@ ViewPassword::ViewPassword(const Password &passwd){
 		});
 	});
 
+	QObject::connect(edit, &QPushButton::clicked, [this, &passwd, &manager, &parent, namelabel, passfield]{
+		try{
+			const std::string name = passwd.name();
+			const std::string pass = passwd.password();
+			AddPassword editpass(&name, &pass);
+			if(editpass.exec()){
+				const Password &pass = editpass.password();
+				manager.edit(name, pass.name(), pass.password());
+				namelabel->setText(("Name: " + pass.name()).c_str());
+				passfield->setText(pass.password().c_str());
+				this->setWindowTitle(pass.name().c_str());
+				parent.refresh();
+			}
+		}catch(const Manager::ManagerException &e){
+			QMessageBox::critical(this, "Database Error", e.what());
+		}
+	});
+
+	QObject::connect(remove, &QPushButton::clicked, [this, &parent, &manager, &passwd]{
+		if(QMessageBox::question(this, "Remove Item?", "Are you sure you want to remove this item?") == QMessageBox::Yes){
+			try{
+				manager.remove(passwd.name());
+				parent.refresh();
+			}catch(const Manager::ManagerException &e){
+				QMessageBox::critical(this, "Database Error", e.what());
+			}
+
+			accept();
+		}
+	});
+
 	hbox->addWidget(passlabel);
 	hbox->addWidget(passfield);
+	editdelete->addWidget(edit);
+	editdelete->addWidget(remove);
 	vbox->addWidget(namelabel);
 	vbox->addLayout(hbox);
+	vbox->addItem(new QSpacerItem(0, 20));
 	vbox->addWidget(copytoclipboard);
+	vbox->addLayout(editdelete);
 }

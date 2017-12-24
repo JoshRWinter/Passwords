@@ -25,6 +25,7 @@ private:
 class Manager{
 public:
 	Manager(const std::string&);
+	Manager(const Manager&) = delete;
 	void open(const std::string&);
 	const std::vector<Password> &get()const;
 	void add(const Password&);

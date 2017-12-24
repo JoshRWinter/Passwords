@@ -1,4 +1,3 @@
-#include <iostream>
 #include <fstream>
 
 #include "Manager.h"
@@ -63,8 +62,6 @@ void Manager::remove(const std::string &name){
 			save();
 			return;
 		}
-		else
-			std::cout << "name: " << name << " does not equal " << (*it).name() << std::endl;
 
 		++it;
 	}
