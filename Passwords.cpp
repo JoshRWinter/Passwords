@@ -1,10 +1,10 @@
 #include <cctype>
+#include <algorithm>
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QMessageBox>
-
 
 #include "Passwords.h"
 #include "Dialog.h"
@@ -57,12 +57,13 @@ void Passwords::view(const QListWidgetItem *item){
 	vp.exec();
 }
 
+// refresh the list of passwords on the screen according to a string filter
 void Passwords::refresh(const std::string &filter){
 	list->clear();
 
-	const std::vector<Password> *all = NULL;
+	std::vector<Password> *all = NULL;
 
-	const std::vector<Password> &entries = manager.get();
+	std::vector<Password> entries = manager.get();
 	std::vector<Password> sorted;
 	if(filter.length() > 0){
 		all = &sorted;
@@ -74,6 +75,10 @@ void Passwords::refresh(const std::string &filter){
 	}
 	else
 		all = &entries;
+
+	std::sort(all->begin(), all->end(), [](const Password &a, const Password &b){
+		return tolower(a.name().at(0)) < tolower(b.name().at(0));
+	});
 
 	for(const Password &entry : *all)
 		list->addItem(entry.name().c_str());
