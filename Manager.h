@@ -7,6 +7,7 @@
 class Password{
 public:
 	bool operator==(const Password&)const;
+	bool operator<(const Password&)const;
 	std::string name()const;
 	std::string password()const;
 	void set_name(const std::string&);

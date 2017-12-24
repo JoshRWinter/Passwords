@@ -76,9 +76,7 @@ void Passwords::refresh(const std::string &filter){
 	else
 		all = &entries;
 
-	std::sort(all->begin(), all->end(), [](const Password &a, const Password &b){
-		return tolower(a.name().at(0)) < tolower(b.name().at(0));
-	});
+	std::sort(all->begin(), all->end());
 
 	for(const Password &entry : *all)
 		list->addItem(entry.name().c_str());

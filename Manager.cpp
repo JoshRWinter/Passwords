@@ -1,4 +1,5 @@
 #include <fstream>
+#include <cctype>
 
 #include "Manager.h"
 
@@ -113,6 +114,10 @@ std::vector<Password> Manager::read(const std::string &name, const std::string &
 
 bool Password::operator==(const Password &rhs)const{
 	return nm == rhs.nm && pass == rhs.pass;
+}
+
+bool Password::operator<(const Password &rhs)const{
+	return tolower(nm.at(0)) < tolower(rhs.nm.at(0));
 }
 
 std::string Password::name()const{
