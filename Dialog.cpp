@@ -6,6 +6,8 @@
 #include <QLabel>
 #include <QTimer>
 #include <QSpacerItem>
+#include <QClipboard>
+#include <QApplication>
 
 #include "Dialog.h"
 
@@ -185,10 +187,13 @@ ViewPassword::ViewPassword(const Password &passwd, Passwords &parent, Manager &m
 	auto edit = new QPushButton("Edit");
 	auto remove = new QPushButton("Delete");
 
-	QObject::connect(copytoclipboard, &QPushButton::clicked, [this, copytoclipboard, copyto, copied]{
+	QObject::connect(copytoclipboard, &QPushButton::clicked, [this, copytoclipboard, copyto, copied, passfield]{
 		copytoclipboard->setText(copied);
-		QTimer::singleShot(1000, this, [copytoclipboard, copyto, copied]{
+		QClipboard *clip = QApplication::clipboard();
+		clip->setText(passfield->text());
+		QTimer::singleShot(5000, this, [copytoclipboard, copyto, copied, clip]{
 			copytoclipboard->setText(copyto);
+			clip->clear();
 		});
 	});
 
