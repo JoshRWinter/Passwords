@@ -41,11 +41,18 @@ NewMaster::NewMaster(){
 	setWindowTitle("Create a new Master Password");
 	resize(300, 0);
 
+	const char *const helptext=
+	"You will now create a Master Password.\n\n"
+	"Your Master Password guards access to your entire password\n"
+	"database. It will need to be a strong password, but also\n"
+	"memorable. Try to create one that is at least 12 characters long.\n";
+
 	auto vbox = new QVBoxLayout;
 	auto hbox = new QHBoxLayout;
 	auto form = new QFormLayout;
 	setLayout(vbox);
 
+	auto help = new QLabel(helptext);
 	auto ok = new QPushButton("OK");
 	auto cancel = new QPushButton("Cancel");
 	first = new QLineEdit;
@@ -74,6 +81,7 @@ NewMaster::NewMaster(){
 	form->addRow("Confirm Password", second);
 	hbox->addWidget(ok);
 	hbox->addWidget(cancel);
+	vbox->addWidget(help);
 	vbox->addLayout(form);
 	vbox->addLayout(hbox);
 }
