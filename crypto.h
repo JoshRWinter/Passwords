@@ -14,6 +14,9 @@ namespace crypto{
 	private:
 		const std::string message;
 	};
+
+	void encrypt(const std::string&, const std::vector<unsigned char>&, std::vector<unsigned char>&);
+	void decrypt(const std::string&, const std::vector<unsigned char>&, std::vector<unsigned char>&);
 }
 
 #endif // CRYPTO_H

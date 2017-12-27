@@ -1,7 +1,10 @@
 #include <fstream>
 #include <cctype>
 
+#include <string.h>
+
 #include "Manager.h"
+#include "crypto.h"
 
 Manager::Manager(const std::string &fname)
 	:dbname(fname)
@@ -12,8 +15,9 @@ Manager::Manager(const std::string &fname)
 		throw Manager::NotFound();
 }
 
-void Manager::open(const std::string &master){
-	entries = Manager::read(dbname, master);
+void Manager::open(const std::string &mp){
+	masterp = mp;
+	entries = Manager::read(dbname, masterp);
 }
 
 const std::vector<Password> &Manager::get()const{
@@ -71,35 +75,87 @@ void Manager::remove(const std::string &name){
 	throw ManagerException("Could not remove, because that name/password combo does not exist!");
 }
 
-bool Manager::generate(const std::string &path, const std::string &master){
-	std::ofstream out(path, std::ofstream::binary);
+void Manager::master(const std::string &mp){
+	masterp = mp;
+}
 
-	return !!out;
+void Manager::generate(const std::string &path, const std::string &master){
+	std::ofstream out(path, std::ofstream::binary);
+	if(!out)
+		throw Manager::ManagerException("Could not open " + path + " in write mode!");
+
+	Manager m(path);
+	m.master(master);
+	m.save();
 }
 
 void Manager::save()const{
-	std::string data;
+	std::string data = "passwordsdb\n";
 	for(const Password &pw : entries){
 		data += pw.serialize();
 	}
+
+	std::vector<unsigned char> raw;
+	std::vector<unsigned char> ciphertext;
+	raw.resize(data.length());
+	memcpy(&raw[0], data.c_str(), data.length());
+	try{
+		crypto::encrypt(masterp, raw, ciphertext);
+	}catch(const crypto::exception&){
+		throw Corrupt();
+	}
+
+	// checksum
+	unsigned long long checksum = 0;
+	for(const auto c : ciphertext)
+		checksum += c;
 
 	std::ofstream out(dbname, std::ofstream::binary);
 	if(!out)
 		throw ManagerException("Could not open \"" + dbname + "\" for writing!");
 
-	out << data;
+	out.write((char*)&checksum, sizeof(checksum));
+	out.write((char*)&ciphertext[0], ciphertext.size());
 }
 
 std::vector<Password> Manager::read(const std::string &name, const std::string &master){
 	std::vector<Password> entries;
 
-	std::ifstream in(name, std::ifstream::binary);
+	std::ifstream in(name, std::ifstream::binary | std::ifstream::ate);
 	if(!in)
 		throw Manager::NotFound();
+	const int filelen = in.tellg();
+	in.seekg(0);
 
-	while(!in.eof()){
-		std::string line;
-		std::getline(in, line);
+	std::vector<unsigned char> raw;
+	raw.resize(filelen - sizeof(unsigned long long));
+
+	unsigned long long checksum;
+	in.read((char*)&checksum, sizeof(checksum));
+	in.read((char*)&raw[0], filelen - sizeof(checksum));
+
+	// validate checksum
+	unsigned long long chk = 0;
+	for(const auto c : raw)
+		chk += c;
+	if(chk != checksum)
+		throw Corrupt();
+
+	// decrypt
+	std::vector<unsigned char> plaintextdata;
+	try{
+		crypto::decrypt(master, raw, plaintextdata);
+	}catch(const crypto::exception&){
+		throw IncorrectPassword();
+	}
+	plaintextdata.push_back(0);
+	std::string csv = (char*)&plaintextdata[0];
+
+	if(Manager::getline(csv) != "passwordsdb")
+		throw IncorrectPassword();
+
+	while(csv.length() > 0){
+		std::string line = Manager::getline(csv);
 
 		if(line == "" || line == "\n")
 			continue;
@@ -110,6 +166,22 @@ std::vector<Password> Manager::read(const std::string &name, const std::string &
 	}
 
 	return entries;
+}
+
+std::string Manager::getline(std::string& stream){
+	std::string line;
+
+	for(unsigned i = 0; i < stream.length(); ++i){
+		const char c = stream.at(i);
+
+		if(c == '\n'){
+			line = stream.substr(0, i);
+			stream.erase(0, i + 1);
+			return line;
+		}
+	}
+
+	throw Corrupt();
 }
 
 bool Password::operator==(const Password &rhs)const{

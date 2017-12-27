@@ -33,16 +33,26 @@ public:
 	const Password &find(const std::string&)const;
 	void edit(const std::string&, const std::string&, const std::string&);
 	void remove(const std::string&);
-	static bool generate(const std::string&, const std::string &master);
+	void master(const std::string&);
+	static void generate(const std::string&, const std::string &master);
 
 private:
 	void save()const;
 	static std::vector<Password> read(const std::string&, const std::string&);
+	static std::string getline(std::string&);
 
 	const std::string dbname;
+	std::string masterp;
 	std::vector<Password> entries;
 
 public:
+	class IncorrectPassword:public std::exception{
+	public:
+		virtual const char *what()const noexcept{
+			return "incorrect master password";
+		}
+	};
+
 	class NotFound:public std::exception{
 	public:
 		virtual const char *what()const noexcept{

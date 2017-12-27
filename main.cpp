@@ -15,7 +15,6 @@ int main(int argc, char **argv){
 
 int run(QApplication &app){
 	try{
-		// init the db
 		Manager mgr(get_db_path());
 
 		// ask user for master password
@@ -39,8 +38,10 @@ int run(QApplication &app){
 			return 1;
 		const std::string master = newm.password();
 
-		if(!Manager::generate(get_db_path(), master)){
-			QMessageBox::critical(NULL, "Error", ("Could not generate the database at \"" + get_db_path() + "\"!").c_str());
+		try{
+			Manager::generate(get_db_path(), master);
+		}catch(const Manager::ManagerException &e){
+			QMessageBox::critical(NULL, "Error", e.what());
 			return 1;
 		}
 
@@ -49,6 +50,11 @@ int run(QApplication &app){
 	}catch(const Manager::Corrupt&){
 		QMessageBox::critical(NULL, "Error", ("The Passwords database at \"" + get_db_path() + "\" appears to be corrupt.").c_str());
 		return 1;
+	}catch(const Manager::IncorrectPassword&){
+		QMessageBox::critical(NULL, "Error", "Could not unlock the database with that password!");
+
+		// recurse
+		return run(app);
 	}
 
 	return 1;
