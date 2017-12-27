@@ -1,18 +1,25 @@
 #include <fstream>
 #include <cctype>
 
+#include <stdlib.h>
+#include <time.h>
 #include <string.h>
 
 #include "Manager.h"
 #include "crypto.h"
 
+#define AMERICAN_ENGLISH_BYTES 102400
+
 Manager::Manager(const std::string &fname)
 	:dbname(fname)
+	,words("american-english", std::ifstream::binary)
 {
 	// check to make sure the file exists
 	std::ifstream in(fname);
 	if(!in)
 		throw Manager::NotFound();
+
+	srand(time(NULL));
 }
 
 void Manager::open(const std::string &mp){
@@ -77,6 +84,26 @@ void Manager::remove(const std::string &name){
 
 void Manager::master(const std::string &mp){
 	masterp = mp;
+}
+
+std::string Manager::gen_random(){
+	std::string r;
+
+	for(int i = 0; i < 25; ++i)
+		r.push_back('!' + (rand() % ('~' - '!' + 1)));
+
+	return r;
+}
+
+std::string Manager::gen_memorable(){
+	if(!words)
+		throw ManagerException("Could not open the words file");
+
+	std::string phrase;
+	for(int i = 0; i < 4; ++i)
+		phrase += getword();
+
+	return phrase;
 }
 
 void Manager::generate(const std::string &path, const std::string &master){
@@ -182,6 +209,31 @@ std::string Manager::getline(std::string& stream){
 	}
 
 	throw Corrupt();
+}
+
+std::string Manager::getword(){
+	words.seekg(rand() % AMERICAN_ENGLISH_BYTES);
+
+	std::string word;
+
+	// read until first newline
+	char c = '.';
+	while(c != '\n')
+		words.read(&c, 1);
+
+	for(;;){
+		words.read(&c, 1);
+
+		if(c == '\n'){
+			if(word.length() == 0)
+				continue;
+			break;
+		}
+
+		word.push_back(c);
+	}
+
+	return word;
 }
 
 bool Password::operator==(const Password &rhs)const{

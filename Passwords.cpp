@@ -37,7 +37,7 @@ Passwords::Passwords(Manager &mgr)
 }
 
 void Passwords::add(){
-	AddPassword newpass(NULL, NULL);
+	AddPassword newpass(manager, NULL, NULL);
 	if(newpass.exec()){
 		Password pw = newpass.password();
 		try{

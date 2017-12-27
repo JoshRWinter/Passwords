@@ -3,6 +3,7 @@
 
 #include <exception>
 #include <vector>
+#include <fstream>
 
 class Password{
 public:
@@ -34,16 +35,20 @@ public:
 	void edit(const std::string&, const std::string&, const std::string&);
 	void remove(const std::string&);
 	void master(const std::string&);
+	std::string gen_memorable();
+	static std::string gen_random();
 	static void generate(const std::string&, const std::string &master);
 
 private:
 	void save()const;
+	 std::string getword();
 	static std::vector<Password> read(const std::string&, const std::string&);
 	static std::string getline(std::string&);
 
 	const std::string dbname;
 	std::string masterp;
 	std::vector<Password> entries;
+	std::ifstream words;
 
 public:
 	class IncorrectPassword:public std::exception{

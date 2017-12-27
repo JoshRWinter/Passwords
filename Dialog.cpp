@@ -90,7 +90,7 @@ std::string NewMaster::password()const{
 	return master;
 }
 
-AddPassword::AddPassword(const std::string *nm, const std::string *pw){
+AddPassword::AddPassword(Manager &manager, const std::string *nm, const std::string *pw){
 	const char *const nametip = "The service that the password is associated with (e.g. Facebook)";
 	const char *const passtip = "The password";
 
@@ -102,7 +102,8 @@ AddPassword::AddPassword(const std::string *nm, const std::string *pw){
 
 	auto form = new QFormLayout;
 	auto vbox = new QVBoxLayout;
-	auto hbox = new QHBoxLayout;
+	auto hbox1 = new QHBoxLayout;
+	auto hbox2 = new QHBoxLayout;
 	setLayout(vbox);
 
 	auto namelabel = new QLabel("Name");
@@ -117,6 +118,8 @@ AddPassword::AddPassword(const std::string *nm, const std::string *pw){
 	pass->setToolTip(passtip);
 	auto ok = new QPushButton("OK");
 	auto cancel = new QPushButton("Cancel");
+	auto genrandom = new QPushButton("Generate Random");
+	auto genmemorable = new QPushButton("Generate Memorable");
 
 	QObject::connect(ok, &QPushButton::clicked, [this](){
 		const QString trimmed_name = name->text().trimmed();
@@ -127,14 +130,31 @@ AddPassword::AddPassword(const std::string *nm, const std::string *pw){
 			accept();
 	});
 
+	QObject::connect(genrandom, &QPushButton::clicked, [this, &manager]{
+		pass->setText(Manager::gen_random().c_str());
+	});
+
+	QObject::connect(genmemorable, &QPushButton::clicked, [this, &manager]{
+		try{
+			pass->setText(manager.gen_memorable().c_str());
+		}catch(const Manager::ManagerException &e){
+			QMessageBox::critical(this, "Error", e.what());
+		}
+	});
+
 	QObject::connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
 
 	form->addRow(namelabel, name);
 	form->addRow(passlabel, pass);
-	hbox->addWidget(ok);
-	hbox->addWidget(cancel);
+	hbox1->addWidget(genrandom);
+	hbox1->addWidget(genmemorable);
+	hbox2->addWidget(ok);
+	hbox2->addWidget(cancel);
 	vbox->addLayout(form);
-	vbox->addLayout(hbox);
+	vbox->addLayout(hbox1);
+	vbox->addLayout(hbox2);
+
+	cancel->setDefault(true);
 }
 
 Password AddPassword::password()const{
@@ -176,7 +196,7 @@ ViewPassword::ViewPassword(const Password &passwd, Passwords &parent, Manager &m
 		try{
 			const std::string name = passwd.name();
 			const std::string pass = passwd.password();
-			AddPassword editpass(&name, &pass);
+			AddPassword editpass(manager, &name, &pass);
 			if(editpass.exec()){
 				const Password &pass = editpass.password();
 				manager.edit(name, pass.name(), pass.password());
@@ -191,7 +211,7 @@ ViewPassword::ViewPassword(const Password &passwd, Passwords &parent, Manager &m
 	});
 
 	QObject::connect(remove, &QPushButton::clicked, [this, &parent, &manager, &passwd]{
-		if(QMessageBox::question(this, "Remove Item?", "Are you sure you want to remove this item?") == QMessageBox::Yes){
+		if(QMessageBox::question(this, "Remove Item?", "Are you sure you want to remove this item?", QMessageBox::Yes | QMessageBox::No, QMessageBox::No) == QMessageBox::Yes){
 			try{
 				manager.remove(passwd.name());
 				parent.refresh();
