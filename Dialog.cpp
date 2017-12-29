@@ -269,9 +269,8 @@ Settings::Settings(const Settings::config &c){
 		NewMaster newm(c.master);
 		if(newm.exec()){
 			cfg.master = newm.password();
+			accept();
 		}
-
-		accept();
 	});
 
 	vbox->addWidget(chmaster);
