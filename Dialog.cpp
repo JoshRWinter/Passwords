@@ -62,7 +62,7 @@ NewMaster::NewMaster(const std::string &current){
 	second = new QLineEdit;
 	first->setEchoMode(QLineEdit::Password);
 	second->setEchoMode(QLineEdit::Password);
-	QObject::connect(ok, &QPushButton::clicked, [this, current, currentpass](){
+	QObject::connect(ok, &QPushButton::clicked, [this, &current, currentpass](){
 		if(first->text() != second->text()){
 			QMessageBox::critical(this, "Error", "Passwords do not match!");
 		}
@@ -251,6 +251,9 @@ ViewPassword::ViewPassword(const Password &passwd, Passwords &parent, Manager &m
 }
 
 Settings::Settings(const Settings::config &c){
+	resize(300, 0);
+	setWindowTitle("Settings");
+
 	auto vbox = new QVBoxLayout;
 	setLayout(vbox);
 
