@@ -42,11 +42,15 @@ public:
 
 private:
 	void save()const;
-	 std::string getword();
+	void write(const std::string&)const;
+	std::string getword();
 	static std::vector<Password> read(const std::string&, const std::string&);
 	static std::string getline(std::string&);
+	static std::string real_db_path(const std::string&);
+	static std::vector<std::string> get_backups(const std::string&);
 
 	const std::string dbname;
+	const std::string dbdir;
 	std::string masterp;
 	std::vector<Password> entries;
 	std::ifstream words;

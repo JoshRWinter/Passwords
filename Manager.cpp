@@ -5,17 +5,37 @@
 #include <time.h>
 #include <string.h>
 
+#include <QDir>
+#include <QDate>
+
 #include "Manager.h"
 #include "crypto.h"
 
 #define AMERICAN_ENGLISH_BYTES 102400
 
+#ifdef _WIN32
+#include <windows.h>
+static void makefolder(const std::string &name){
+	CreateDirectory(name.c_str(), NULL);
+}
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+static void makefolder(const std::string &name){
+	mkdir(name.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
+}
+#endif // _WIN32
+
 Manager::Manager(const std::string &fname)
-	:dbname(fname)
+	:dbname(Manager::real_db_path(fname))
+	,dbdir(fname)
 	,words("american-english", std::ifstream::binary)
 {
+	// make the folders
+	makefolder(fname);
+
 	// check to make sure the file exists
-	std::ifstream in(fname);
+	std::ifstream in(dbname);
 	if(!in)
 		throw Manager::NotFound();
 
@@ -112,9 +132,9 @@ std::string Manager::gen_memorable(){
 }
 
 void Manager::generate(const std::string &path, const std::string &master){
-	std::ofstream out(path, std::ofstream::binary);
+	std::ofstream out(Manager::real_db_path(path), std::ofstream::binary);
 	if(!out)
-		throw Manager::ManagerException("Could not open " + path + " in write mode!");
+		throw Manager::ManagerException("Could not open " + Manager::real_db_path(path) + " in write mode!");
 
 	Manager m(path);
 	m.master(master);
@@ -122,6 +142,45 @@ void Manager::generate(const std::string &path, const std::string &master){
 }
 
 void Manager::save()const{
+	const std::vector<std::string> &backups = get_backups(dbdir);
+
+	const QDate &now = QDate::currentDate();
+
+	bool today = false;
+	// entries will be of the form YYYY_MM_DD.backup
+	for(const std::string &e : backups){
+		std::string entry;
+		for(const char c : e){
+			if(c == '_')
+				entry.push_back(' ');
+			else
+				entry.push_back(c);
+		}
+
+		int year;
+		int month;
+		int day;
+
+		if(3 != sscanf(entry.c_str(), "%u %u %u", &year, &month, &day))
+			throw std::runtime_error(entry + " is not the right format!");
+
+		if(now.day() == day && now.month() == month && now.year() == year){
+			today = true;
+			break;
+		}
+	}
+
+	if(!today){
+		const std::string name = std::to_string(now.year()) + "_" + std::to_string(now.month()) + "_" + std::to_string(now.day()) + ".backup";
+		QDir dir(dbdir.c_str());
+		if(!dir.rename("db", name.c_str()))
+			throw ManagerException("could not move \"db\" to \"" + name + "\"");
+	}
+
+	write(dbname);
+}
+
+void Manager::write(const std::string &file)const{
 	std::string data = "passwordsdb\n";
 	for(const Password &pw : entries){
 		data += pw.serialize();
@@ -142,12 +201,37 @@ void Manager::save()const{
 	for(const auto c : ciphertext)
 		checksum += c;
 
-	std::ofstream out(dbname, std::ofstream::binary);
+	std::ofstream out(file, std::ofstream::binary);
 	if(!out)
-		throw ManagerException("Could not open \"" + dbname + "\" for writing!");
+		throw ManagerException("Could not open \"" + file + "\" for writing!");
 
 	out.write((char*)&checksum, sizeof(checksum));
 	out.write((char*)&ciphertext[0], ciphertext.size());
+}
+
+std::string Manager::getword(){
+	words.seekg(rand() % AMERICAN_ENGLISH_BYTES);
+
+	std::string word;
+
+	// read until first newline
+	char c = '.';
+	while(c != '\n')
+		words.read(&c, 1);
+
+	for(;;){
+		words.read(&c, 1);
+
+		if(c == '\n'){
+			if(word.length() == 0)
+				continue;
+			break;
+		}
+
+		word.push_back(c);
+	}
+
+	return word;
 }
 
 std::vector<Password> Manager::read(const std::string &name, const std::string &master){
@@ -156,7 +240,9 @@ std::vector<Password> Manager::read(const std::string &name, const std::string &
 	std::ifstream in(name, std::ifstream::binary | std::ifstream::ate);
 	if(!in)
 		throw Manager::NotFound();
-	const int filelen = in.tellg();
+	const long long filelen = in.tellg();
+	if(filelen == 0)
+		throw Corrupt();
 	in.seekg(0);
 
 	std::vector<unsigned char> raw;
@@ -216,29 +302,22 @@ std::string Manager::getline(std::string& stream){
 	throw Corrupt();
 }
 
-std::string Manager::getword(){
-	words.seekg(rand() % AMERICAN_ENGLISH_BYTES);
+std::string Manager::real_db_path(const std::string &path){
+	return path + "/db";
+}
 
-	std::string word;
+std::vector<std::string> Manager::get_backups(const std::string &dir){
+	QDir directory(dir.c_str());
 
-	// read until first newline
-	char c = '.';
-	while(c != '\n')
-		words.read(&c, 1);
+	std::vector<std::string> backups;
 
-	for(;;){
-		words.read(&c, 1);
-
-		if(c == '\n'){
-			if(word.length() == 0)
-				continue;
-			break;
-		}
-
-		word.push_back(c);
+	auto list = directory.entryList();
+	for(const auto &entry : list){
+		if(entry != "db" && entry != "." && entry != "..")
+			backups.push_back(entry.toStdString());
 	}
 
-	return word;
+	return backups;
 }
 
 bool Password::operator==(const Password &rhs)const{
