@@ -1,4 +1,4 @@
-.PHONY := clean release
+.PHONY := clean release install uninstall
 
 all: Makefile.qmake
 	make -f Makefile.qmake
@@ -12,3 +12,17 @@ release: Makefile.qmake clean
 
 clean:
 	make -f Makefile.qmake distclean
+
+install:
+	if [ ! -d /usr/share/Passwords ] ; then \
+		sudo mkdir /usr/share/Passwords; \
+	fi
+	sudo cp american-english /usr/share/Passwords
+	sudo cp passwords.desktop /usr/share/applications
+	sudo cp passwords /usr/bin/
+
+uninstall:
+	sudo rm /usr/share/Passwords/american-english
+	sudo rmdir /usr/share/Passwords
+	sudo rm /usr/bin/passwords
+	sudo rm /usr/share/applications/passwords.desktop

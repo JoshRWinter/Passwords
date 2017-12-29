@@ -18,18 +18,24 @@
 static void makefolder(const std::string &name){
 	CreateDirectory(name.c_str(), NULL);
 }
+static std::string get_resource_dir(){
+	return {};
+}
 #else
 #include <sys/stat.h>
 #include <sys/types.h>
 static void makefolder(const std::string &name){
 	mkdir(name.c_str(), S_IRUSR | S_IWUSR | S_IXUSR);
 }
+static std::string get_resource_dir(){
+	return "/usr/share/Passwords";
+}
 #endif // _WIN32
 
 Manager::Manager(const std::string &fname)
 	:dbname(Manager::real_db_path(fname))
 	,dbdir(fname)
-	,words("american-english", std::ifstream::binary)
+	,words(get_resource_dir() + "/american-english", std::ifstream::binary)
 {
 	// make the folders
 	makefolder(fname);
@@ -162,7 +168,7 @@ void Manager::save()const{
 		int day;
 
 		if(3 != sscanf(entry.c_str(), "%u %u %u", &year, &month, &day))
-			throw std::runtime_error(entry + " is not the right format!");
+			continue;
 
 		if(now.day() == day && now.month() == month && now.year() == year){
 			today = true;
