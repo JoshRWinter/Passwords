@@ -45,9 +45,11 @@ NewMaster::NewMaster(const std::string &current){
 
 	const char *const helptext=
 	"You will now create a Master Password.\n\n"
-	"Your Master Password guards access to your entire password\n"
-	"database. It will need to be a strong password, but also\n"
-	"memorable. Try to create one that is at least 12 characters long.\n";
+	"Your Master Password guards access to your entire password "
+	"database. It will need to be a strong password, but also "
+	"memorable. Try to create one that is at least 12 characters long.\n\n"
+	"There is no way to recover your Master Password should you forget "
+	"it!\n";
 
 	auto vbox = new QVBoxLayout;
 	auto hbox = new QHBoxLayout;
@@ -55,6 +57,8 @@ NewMaster::NewMaster(const std::string &current){
 	setLayout(vbox);
 
 	auto help = new QLabel(helptext);
+	help->setWordWrap(true);
+	help->setMaximumWidth(400);
 	auto currentpass = new QLineEdit;
 	auto ok = new QPushButton("OK");
 	auto cancel = new QPushButton("Cancel");
@@ -97,6 +101,8 @@ NewMaster::NewMaster(const std::string &current){
 	vbox->addWidget(help);
 	vbox->addLayout(form);
 	vbox->addLayout(hbox);
+
+	setMinimumSize(sizeHint());
 }
 
 std::string NewMaster::password()const{
