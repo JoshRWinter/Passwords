@@ -167,7 +167,7 @@ void Manager::save()const{
 		int month;
 		int day;
 
-		if(3 != sscanf(entry.c_str(), "%u %u %u", &year, &month, &day))
+		if(3 != sscanf(entry.c_str(), "%d %d %d", &year, &month, &day))
 			continue;
 
 		if(now.day() == day && now.month() == month && now.year() == year){
