@@ -22,16 +22,31 @@ Passwords::Passwords(Manager &mgr)
 	list = new QListWidget;
 	auto searchbar = new QLineEdit;
 	auto add = new QPushButton("Add Password");
+	auto settings = new QPushButton("Settings");
 
 	QObject::connect(add, &QPushButton::clicked, this, &Passwords::add);
 	QObject::connect(list, &QListWidget::itemDoubleClicked, this, &Passwords::view);
 	QObject::connect(searchbar, &QLineEdit::textChanged, [this](const QString &text){
 		refresh(text.toStdString());
 	});
+	QObject::connect(settings, &QPushButton::clicked, [this]{
+		Settings::config pre;
+		pre.master = manager.get_master();
+
+		Settings settings(pre);
+		if(settings.exec()){
+			Settings::config config = settings.get_config();
+			// apply the settings
+			if(pre.master != config.master){
+				manager.master(config.master);
+			}
+		}
+	});
 
 	vbox->addWidget(searchbar);
 	vbox->addWidget(list);
 	vbox->addWidget(add);
+	vbox->addWidget(settings);
 
 	refresh();
 }

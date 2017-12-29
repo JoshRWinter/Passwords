@@ -84,6 +84,11 @@ void Manager::remove(const std::string &name){
 
 void Manager::master(const std::string &mp){
 	masterp = mp;
+	save();
+}
+
+std::string Manager::get_master()const{
+	return masterp;
 }
 
 std::string Manager::gen_random(){

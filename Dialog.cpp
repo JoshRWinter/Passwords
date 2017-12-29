@@ -39,7 +39,7 @@ std::string Greeter::password()const{
 	return pass->text().toStdString();
 }
 
-NewMaster::NewMaster(){
+NewMaster::NewMaster(const std::string &current){
 	setWindowTitle("Create a new Master Password");
 	resize(300, 0);
 
@@ -55,15 +55,19 @@ NewMaster::NewMaster(){
 	setLayout(vbox);
 
 	auto help = new QLabel(helptext);
+	auto currentpass = new QLineEdit;
 	auto ok = new QPushButton("OK");
 	auto cancel = new QPushButton("Cancel");
 	first = new QLineEdit;
 	second = new QLineEdit;
 	first->setEchoMode(QLineEdit::Password);
 	second->setEchoMode(QLineEdit::Password);
-	QObject::connect(ok, &QPushButton::clicked, [this](){
+	QObject::connect(ok, &QPushButton::clicked, [this, current, currentpass](){
 		if(first->text() != second->text()){
 			QMessageBox::critical(this, "Error", "Passwords do not match!");
+		}
+		else if(current.size() > 0 && current != currentpass->text().toStdString()){
+			QMessageBox::critical(this, "Error", "Incorrect current master password!");
 		}
 		else{
 			if(first->text().length() == 0){
@@ -78,6 +82,13 @@ NewMaster::NewMaster(){
 		}
 	});
 	QObject::connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
+
+	if(current.size() > 0){
+		currentpass->setEchoMode(QLineEdit::Password);
+		form->addRow("Current Master Password", currentpass);
+	}
+	else
+		delete currentpass;
 
 	form->addRow("Master Password", first);
 	form->addRow("Confirm Password", second);
@@ -237,4 +248,26 @@ ViewPassword::ViewPassword(const Password &passwd, Passwords &parent, Manager &m
 	vbox->addItem(new QSpacerItem(0, 20));
 	vbox->addWidget(copytoclipboard);
 	vbox->addLayout(editdelete);
+}
+
+Settings::Settings(const Settings::config &c){
+	auto vbox = new QVBoxLayout;
+	setLayout(vbox);
+
+	auto chmaster = new QPushButton("Change Master Password");
+
+	QObject::connect(chmaster, &QPushButton::clicked, [this, &c, chmaster]{
+		NewMaster newm(c.master);
+		if(newm.exec()){
+			cfg.master = newm.password();
+		}
+
+		accept();
+	});
+
+	vbox->addWidget(chmaster);
+}
+
+Settings::config Settings::get_config()const{
+	return cfg;
 }

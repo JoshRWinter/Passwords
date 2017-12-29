@@ -19,7 +19,7 @@ private:
 // generate new master password
 class NewMaster:public QDialog{
 public:
-	NewMaster();
+	NewMaster(const std::string& = "");
 	std::string password()const;
 private:
 	QLineEdit *first;
@@ -39,6 +39,19 @@ private:
 class ViewPassword:public QDialog{
 public:
 	ViewPassword(const Password&, Passwords&, Manager&);
+};
+
+class Settings:public QDialog{
+public:
+	struct config{
+		std::string master;
+	};
+
+	Settings(const config&);
+	config get_config()const;
+
+private:
+	config cfg;
 };
 
 #endif // DIALOG_H

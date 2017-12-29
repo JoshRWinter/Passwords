@@ -35,6 +35,7 @@ public:
 	void edit(const std::string&, const std::string&, const std::string&);
 	void remove(const std::string&);
 	void master(const std::string&);
+	std::string get_master()const;
 	std::string gen_memorable();
 	static std::string gen_random();
 	static void generate(const std::string&, const std::string &master);
