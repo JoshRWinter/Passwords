@@ -1,4 +1,4 @@
-Passwords is a simple desktop manager for Linux (doesn't compile on windows just yet) that can store all your passwords and keep them safe for you -- locked behind your Master Password
+Passwords is a simple desktop password manager for Linux (doesn't compile on windows just yet) that can store all your passwords and keep them safe for you -- locked behind your Master Password
 
 The password database is encrypted using OpenSSL with AES-256 (CBC)
 
