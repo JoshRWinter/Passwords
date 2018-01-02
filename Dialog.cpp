@@ -173,7 +173,10 @@ AddPassword::AddPassword(Manager &manager, const std::string *nm, const std::str
 	vbox->addLayout(hbox1);
 	vbox->addLayout(hbox2);
 
-	cancel->setDefault(true);
+	if(nm == NULL && pw == NULL)
+		ok->setDefault(true);
+	else
+		cancel->setDefault(true);
 }
 
 Password AddPassword::password()const{
