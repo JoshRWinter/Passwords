@@ -1,4 +1,5 @@
 #include <array>
+#include <string>
 
 #include <openssl/evp.h>
 #include <openssl/aes.h>

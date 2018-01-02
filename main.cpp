@@ -7,11 +7,21 @@
 static int run(QApplication&);
 static std::string get_db_path();
 
+#ifdef _WIN32
+#include <windows.h>
+int WINAPI WinMain(HINSTANCE, HINSTANCE, PSTR, int){
+	int count = 0;
+	QApplication app(count, NULL);
+
+	return run(app);
+}
+#else
 int main(int argc, char **argv){
 	QApplication app(argc, argv);
 
 	return run(app);
 }
+#endif // _WIN32
 
 int run(QApplication &app){
 	try{
@@ -60,7 +70,14 @@ int run(QApplication &app){
 	return 1;
 }
 
-#ifndef _WIN32
+#ifdef _WIN32
+std::string get_db_path(){
+	char path[MAX_PATH];
+	ExpandEnvironmentStrings("%USERPROFILE%\\Documents\\PasswordsDB", path, MAX_PATH - 1);
+
+	return path;
+}
+#else
 #include <wordexp.h>
 std::string get_db_path(){
 	wordexp_t p;

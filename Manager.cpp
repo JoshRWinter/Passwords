@@ -19,7 +19,10 @@ static void makefolder(const std::string &name){
 	CreateDirectory(name.c_str(), NULL);
 }
 static std::string get_resource_dir(){
-	return {};
+	char path[MAX_PATH];
+	ExpandEnvironmentStrings("%USERPROFILE%\\Documents\\PasswordsDB", path, MAX_PATH - 1);
+
+	return path;
 }
 #else
 #include <sys/stat.h>
@@ -138,9 +141,11 @@ std::string Manager::gen_memorable(){
 }
 
 void Manager::generate(const std::string &path, const std::string &master){
-	std::ofstream out(Manager::real_db_path(path), std::ofstream::binary);
-	if(!out)
-		throw Manager::ManagerException("Could not open " + Manager::real_db_path(path) + " in write mode!");
+	{
+		std::ofstream out(Manager::real_db_path(path), std::ofstream::binary);
+		if(!out)
+			throw Manager::ManagerException("Could not open " + Manager::real_db_path(path) + " in write mode!");
+	}
 
 	Manager m(path);
 	m.master(master);
@@ -179,8 +184,8 @@ void Manager::save()const{
 	if(!today){
 		const std::string name = std::to_string(now.year()) + "_" + std::to_string(now.month()) + "_" + std::to_string(now.day()) + ".backup";
 		QDir dir(dbdir.c_str());
-		if(!dir.rename("db", name.c_str()))
-			throw ManagerException("could not move \"db\" to \"" + name + "\"");
+		if(dir.exists("db") && !dir.rename("db", name.c_str()))
+			throw ManagerException("could not move \"db\" to \"" + dbdir + "/" + name + "\"");
 	}
 
 	write(dbname);
