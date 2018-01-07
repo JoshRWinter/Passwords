@@ -1,140 +1,123 @@
-#include <array>
-#include <string>
-
-#include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/err.h>
 #include <string.h>
 
 #include "crypto.h"
 
-#define DEBUG(x) (std::string("[ ") + __FILE__ + ": " + __func__ + ": " + std::to_string(__LINE__) + "] " + x)
-
-// back-end encrypt & decrypt functions
-static void scramble(const std::vector<unsigned char>&, const std::array<unsigned char, 32>&, const std::array<unsigned char, 16>&, std::vector<unsigned char>&);
-static void unscramble(const std::vector<unsigned char>&, const std::array<unsigned char, 32>&, const std::array<unsigned char, 16>&, std::vector<unsigned char>&);
+#define DEBUG(x) (std::string("[") + __FILE__ + ": " + __func__ + ": " + std::to_string(__LINE__) + "] " + x)
 
 // turn passphrase into raw key
-static void stretch(const std::string &pass, std::array<unsigned char, 32> &bytes, std::array<unsigned char, 16> &iv){
-	const int ret = EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(), NULL, (unsigned char*)pass.c_str(), pass.length(), 1, &bytes[0], &iv[0]);
+static void stretch(const std::string &pass, unsigned char *key, unsigned char *iv){
+	const int ret = EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(), NULL, (unsigned char*)pass.c_str(), pass.length(), 1, key, iv);
 	if(ret == 0)
 		throw crypto::exception("Could not stretch the key");
 }
 
-// encryption interface
-void crypto::encrypt(const std::string &password, const std::vector<unsigned char> &plaintext, std::vector<unsigned char> &ciphertext){
-	std::array<unsigned char, 32> key;
-	std::array<unsigned char, 16> iv; // init vector
-	memset(&key[0], 0, key.size());
-	memset(&iv[0], 0, iv.size());
+//
+// encrypt stream object
+//
+crypto::encrypt_stream::encrypt_stream(const std::string &pw){
+	// initialize the key and iv
+	stretch(pw, key, iv);
 
-	// compute the key and iv
-	stretch(password, key, iv);
+	// construct the evp cipher context
+	if(!(ctx = EVP_CIPHER_CTX_new()))
+		throw crypto::exception(DEBUG("couldn't construct evp cipher context"));
 
-	ciphertext.resize(plaintext.size() + 256);
-	scramble(plaintext, key, iv, ciphertext);
+	// initialize encryption operation
+	if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
+		throw crypto::exception(DEBUG("couldn't initialize the encryption operation"));
 }
 
-// decryption interface
-void crypto::decrypt(const std::string &password, const std::vector<unsigned char> &ciphertext, std::vector<unsigned char> &plaintext){
-	std::array<unsigned char, 32> key;
-	std::array<unsigned char, 16> iv; // init vector
-	memset(&key[0], 0, key.size());
-	memset(&iv[0], 0, iv.size());
-
-	// compute key and iv
-	stretch(password, key, iv);
-
-	plaintext.resize(ciphertext.size());
-	unscramble(ciphertext, key, iv, plaintext);
+crypto::encrypt_stream::~encrypt_stream(){
+	EVP_CIPHER_CTX_free(ctx);
 }
 
-void scramble(const std::vector<unsigned char> &plaintext, const std::array<unsigned char, 32> &key, const std::array<unsigned char, 16> &iv, std::vector<unsigned char> &ciphertext){
-	EVP_CIPHER_CTX *ctx;
-	std::string err;
-	int cipherlen = 0;
-	int len;
+int crypto::encrypt_stream::encrypt(const unsigned char *plaintext, int plainlen, unsigned char *ciphertext, int cipherlen){
+	if(cipherlen < plainlen + BLOCK_SIZE - 1)
+		throw crypto::exception(DEBUG("the size of the ciphertext buffer must be at least (plainlen + BLOCK_SIZE - 1). BLOCKSIZE = 256"));
 
-	// construct the context
-	if(!(ctx = EVP_CIPHER_CTX_new())){
-		err = DEBUG("couldn't construct evp cipher context");
-		goto error;
-	}
+	int written;
+	if(1 != EVP_EncryptUpdate(ctx, ciphertext, &written, plaintext, plainlen))
+		throw crypto::exception(DEBUG("failed to encrypt block"));
 
-	// init the encryption operation
-	if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, &key[0], &iv[0])){
-		err = DEBUG("couldn't init evp cipher operation");
-		goto error;
-	}
-
-	// encryption block loop
-	for(std::vector<unsigned char>::size_type i = 0; i < plaintext.size(); i += 256){
-		if(1 != EVP_EncryptUpdate(ctx, &ciphertext[i], &len, &plaintext[i], plaintext.size() - i)){
-			err = DEBUG("couldn't encrypt " + std::to_string(i) + " block");
-			goto error;
-		}
-
-		cipherlen += len;
-	}
-
-	// finalize the encryption operation
-	if(1 != EVP_EncryptFinal_ex(ctx, &ciphertext[cipherlen], &len)){
-		err = DEBUG("couldn't finalize the encryption operation");
-		goto error;
-	}
-	cipherlen += len;
-	ciphertext.resize(cipherlen);
-
-	// finalize the evp context
-	EVP_CIPHER_CTX_free(ctx);
-	return;
-
-error:
-	EVP_CIPHER_CTX_free(ctx);
-	throw crypto::exception(err);
+	return written;
 }
 
-void unscramble(const std::vector<unsigned char> &ciphertext, const std::array<unsigned char, 32> &key, const std::array<unsigned char, 16> &iv, std::vector<unsigned char> &plaintext){
-	EVP_CIPHER_CTX *ctx;
-	int plainlen = 0;
-	int len;
-	std::string err;
+int crypto::encrypt_stream::finalize(unsigned char *ciphertext, int cipherlen){
+	if(cipherlen < BLOCK_SIZE)
+		throw crypto::exception(DEBUG("cipherlen should be at least BLOCK_SIZE. BLOCK_SIZE = 256"));
 
-	// construct evp context
-	if(!(ctx = EVP_CIPHER_CTX_new())){
-		err = DEBUG("couldn't construct evp cipher context");
-		goto error;
-	}
+	int written;
+	if(1 != EVP_EncryptFinal_ex(ctx, ciphertext, &written))
+		throw crypto::exception(DEBUG("could not finalize the encryption operation"));
 
-	// init the encryption operation
-	if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, &key[0], &iv[0])){
-		err = DEBUG("couldn't init evp cipher operation");
-		goto error;
-	}
+	return written;
+}
 
-	// decryption block loop
-	for(std::vector<unsigned char>::size_type i = 0; i < ciphertext.size(); i += 256){
-		if(1 != EVP_DecryptUpdate(ctx, &plaintext[i], &len, &ciphertext[i], ciphertext.size() - i)){
-			err = DEBUG("couldn't decrypt " + std::to_string(i) + " block");
-			goto error;
-		}
+//
+// decrypt stream object
+//
+crypto::decrypt_stream::decrypt_stream(const std::string &pw){
+	// init key and iv
+	stretch(pw, key, iv);
 
-		plainlen += len;
-	}
+	// construct evp cipher context
+	if(!(ctx = EVP_CIPHER_CTX_new()))
+		throw crypto::exception(DEBUG("could not construct evp cipher context"));
 
-	// finalize the decryption operation
-	if(1 != EVP_DecryptFinal_ex(ctx, &plaintext[plainlen], &len)){
-		err = DEBUG("couldn't finalize the decryption operation");
-		goto error;
-	}
-	plainlen += len;
-	plaintext.resize(plainlen);
+	// initialize decryption operation
+	if(1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv))
+		throw crypto::exception(DEBUG("could not initialize the decryption operation"));
+}
 
-	// finalize the evp context
+crypto::decrypt_stream::~decrypt_stream(){
 	EVP_CIPHER_CTX_free(ctx);
-	return;
+}
 
-error:
-	EVP_CIPHER_CTX_free(ctx);
-	throw crypto::exception(err);
+int crypto::decrypt_stream::decrypt(const unsigned char *ciphertext, int cipherlen, unsigned char *plaintext, int plainlen){
+	if(plainlen < cipherlen + BLOCK_SIZE)
+		throw crypto::exception(DEBUG("the size of the plaintext buffer should be at least (cipherlen + BLOCKSIZE). BLOCKSIZE = 256"));
+
+	int written;
+	if(1 != EVP_DecryptUpdate(ctx, plaintext, &written, ciphertext, cipherlen))
+		throw crypto::exception(DEBUG("failed to decrypt block"));
+
+	return written;
+}
+
+int crypto::decrypt_stream::finalize(unsigned char *plaintext, int plainlen){
+	if(plainlen < BLOCK_SIZE)
+		throw crypto::exception(DEBUG("plainlen should be at least BLOCK_SIZE. BLOCK_SIZE = 256"));
+
+	int written;
+	if(1 != EVP_DecryptFinal_ex(ctx, plaintext, &written))
+		throw crypto::exception(DEBUG("incorrect padding format"));
+
+	return written;
+}
+
+//
+// one and done functions (full in memory encryption)
+//
+void crypto::encrypt(const std::string &passwd, const std::vector<unsigned char> &plaintext, std::vector<unsigned char> &ciphertext){
+	crypto::encrypt_stream encrypt(passwd);
+
+	ciphertext.resize(plaintext.size() + BLOCK_SIZE - 1);
+
+	const int written1 = encrypt.encrypt(plaintext.data(), plaintext.size(), ciphertext.data(), ciphertext.size());
+	ciphertext.resize(written1 + BLOCK_SIZE);
+	const int written2 = encrypt.finalize(ciphertext.data() + written1, ciphertext.size() - written1);
+	ciphertext.resize(written1 + written2);
+}
+
+void crypto::decrypt(const std::string &passwd, const std::vector<unsigned char> &ciphertext, std::vector<unsigned char> &plaintext){
+	crypto::decrypt_stream decrypt(passwd);
+
+	plaintext.resize(ciphertext.size() + BLOCK_SIZE);
+
+	const int written1 = decrypt.decrypt(ciphertext.data(), ciphertext.size(), plaintext.data(), plaintext.size());
+	plaintext.resize(written1 + BLOCK_SIZE);
+	const int written2 = decrypt.finalize(plaintext.data() + written1, plaintext.size() - written1);
+	plaintext.resize(written1 + written2);
 }
