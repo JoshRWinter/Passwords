@@ -8,6 +8,14 @@
 #include <QDir>
 #include <QDate>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif // _WIN32
+
 #include "Manager.h"
 #include "crypto.h"
 
@@ -149,7 +157,6 @@ void Manager::generate(const std::string &path, const std::string &master){
 
 	Manager m(path);
 	m.master(master);
-	m.save();
 }
 
 void Manager::save()const{
@@ -197,27 +204,36 @@ void Manager::write(const std::string &file)const{
 		data += pw.serialize();
 	}
 
+	// compile the data
 	std::vector<unsigned char> raw;
 	std::vector<unsigned char> ciphertext;
 	raw.resize(data.length());
-	memcpy(&raw[0], data.c_str(), data.length());
+	memcpy(raw.data(), data.c_str(), data.length());
+
+	// plaintext checksum
+	unsigned long long plain_checksum = 0;
+	for(const auto c : data)
+		plain_checksum += c;
+
+	// encrypt
 	try{
 		crypto::encrypt(masterp, raw, ciphertext);
 	}catch(const crypto::exception&){
 		throw Corrupt();
 	}
 
-	// checksum
-	unsigned long long checksum = 0;
+	// ciphertext checksum
+	unsigned long long cipher_checksum = 0;
 	for(const auto c : ciphertext)
-		checksum += c;
+		cipher_checksum += c;
 
 	std::ofstream out(file, std::ofstream::binary);
 	if(!out)
 		throw ManagerException("Could not open \"" + file + "\" for writing!");
 
-	out.write((char*)&checksum, sizeof(checksum));
-	out.write((char*)&ciphertext[0], ciphertext.size());
+	out.write((char*)&cipher_checksum, sizeof(cipher_checksum)); // write the ciphertext checksum
+	out.write((char*)&plain_checksum, sizeof(plain_checksum)); // write the plaintext checksum
+	out.write((char*)ciphertext.data(), ciphertext.size());
 }
 
 std::string Manager::getword(){
@@ -248,26 +264,27 @@ std::string Manager::getword(){
 std::vector<Password> Manager::read(const std::string &name, const std::string &master){
 	std::vector<Password> entries;
 
-	std::ifstream in(name, std::ifstream::binary | std::ifstream::ate);
+	std::ifstream in(name, std::ifstream::binary);
 	if(!in)
 		throw Manager::NotFound();
-	const long long filelen = in.tellg();
+	const long long filelen = Manager::filesize(name);
 	if(filelen == 0)
 		throw Corrupt();
-	in.seekg(0);
 
 	std::vector<unsigned char> raw;
-	raw.resize(filelen - sizeof(unsigned long long));
+	raw.resize(filelen - sizeof(unsigned long long) - sizeof(unsigned long long));
 
-	unsigned long long checksum;
-	in.read((char*)&checksum, sizeof(checksum));
-	in.read((char*)&raw[0], filelen - sizeof(checksum));
+	unsigned long long cipher_checksum;
+	unsigned long long plain_checksum;
+	in.read((char*)&cipher_checksum, sizeof(cipher_checksum));
+	in.read((char*)&plain_checksum, sizeof(plain_checksum));
+	in.read((char*)raw.data(), filelen - sizeof(cipher_checksum) - sizeof(plain_checksum));
 
-	// validate checksum
+	// validate cipher checksum
 	unsigned long long chk = 0;
 	for(const auto c : raw)
 		chk += c;
-	if(chk != checksum)
+	if(chk != cipher_checksum)
 		throw Corrupt();
 
 	// decrypt
@@ -278,7 +295,14 @@ std::vector<Password> Manager::read(const std::string &name, const std::string &
 		throw IncorrectPassword();
 	}
 	plaintextdata.push_back(0);
-	std::string csv = (char*)&plaintextdata[0];
+	std::string csv = (char*)plaintextdata.data();
+
+	// validate cipher checksum
+	chk = 0;
+	for(const auto c : plaintextdata)
+		chk += c;
+	if(chk != plain_checksum)
+		throw IncorrectPassword();
 
 	if(Manager::getline(csv) != "passwordsdb")
 		throw IncorrectPassword();
@@ -329,6 +353,17 @@ std::vector<std::string> Manager::get_backups(const std::string &dir){
 	}
 
 	return backups;
+}
+
+// get filesize
+long long Manager::filesize(const std::string &fname){
+#ifdef _WIN32
+	throw ManagerException("not implemented filesize");
+#else
+	struct stat buff;
+	stat(fname.c_str(), &buff);
+	return buff.st_size;
+#endif // _WIN32
 }
 
 bool Password::operator==(const Password &rhs)const{

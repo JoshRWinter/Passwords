@@ -48,6 +48,7 @@ private:
 	static std::string getline(std::string&);
 	static std::string real_db_path(const std::string&);
 	static std::vector<std::string> get_backups(const std::string&);
+	static long long filesize(const std::string&);
 
 	const std::string dbname;
 	const std::string dbdir;
