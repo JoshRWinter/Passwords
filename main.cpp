@@ -66,6 +66,9 @@ int run(QApplication &app){
 		// recurse
 		return run(app);
 	}
+	catch(const std::exception &e){
+		QMessageBox::critical(NULL, "error", e.what());
+	}
 
 	return 1;
 }

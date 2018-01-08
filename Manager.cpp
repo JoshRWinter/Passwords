@@ -264,12 +264,12 @@ std::string Manager::getword(){
 std::vector<Password> Manager::read(const std::string &name, const std::string &master){
 	std::vector<Password> entries;
 
-	std::ifstream in(name, std::ifstream::binary);
-	if(!in)
-		throw Manager::NotFound();
 	const long long filelen = Manager::filesize(name);
 	if(filelen == 0)
 		throw Corrupt();
+	std::ifstream in(name, std::ifstream::binary);
+	if(!in)
+		throw Manager::NotFound();
 
 	std::vector<unsigned char> raw;
 	raw.resize(filelen - sizeof(unsigned long long) - sizeof(unsigned long long));
@@ -358,10 +358,18 @@ std::vector<std::string> Manager::get_backups(const std::string &dir){
 // get filesize
 long long Manager::filesize(const std::string &fname){
 #ifdef _WIN32
-	throw ManagerException("not implemented filesize");
+	HANDLE file = CreateFile(fname.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if(file == INVALID_HANDLE_VALUE)
+		throw ManagerException("could not stat file \"" + fname + "\" (" + std::to_string(GetLastError()) + ")");
+
+	LARGE_INTEGER li;
+	GetFileSizeEx(file, &li);
+	CloseHandle(file);
+	return li.QuadPart;
 #else
 	struct stat buff;
-	stat(fname.c_str(), &buff);
+	if(0 != stat(fname.c_str(), &buff))
+		throw ManagerException("could not stat file \"" + fname + "\"");
 	return buff.st_size;
 #endif // _WIN32
 }
