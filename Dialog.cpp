@@ -76,7 +76,7 @@ NewMaster::NewMaster(const std::string &current){
 		else{
 			if(first->text().length() == 0){
 				if(QMessageBox::No == QMessageBox::warning(this, "Empty Password", "Having an empty password can be very dangerous, "
-					"as it allows anyone to see all of you stored passwords without authenticating.\n"
+					"as it allows anyone to see all of your stored passwords without authenticating.\n\n"
 					"Are you sure you want to have an empty master password?", QMessageBox::Yes|QMessageBox::No)){
 						return;
 				}
