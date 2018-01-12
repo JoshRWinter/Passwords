@@ -109,11 +109,12 @@ std::string NewMaster::password()const{
 	return master;
 }
 
-AddPassword::AddPassword(Manager &manager, const std::string *nm, const std::string *pw){
+AddPassword::AddPassword(Manager &manager, const std::string *nm, const std::string *un, const std::string *pw){
 	const char *const nametip = "The service that the password is associated with (e.g. Facebook)";
+	const char *const usrtip = "The user name";
 	const char *const passtip = "The password";
 
-	if(nm || pw)
+	if(nm || un || pw)
 		setWindowTitle("Edit Password");
 	else
 		setWindowTitle("Add a new Password");
@@ -125,15 +126,20 @@ AddPassword::AddPassword(Manager &manager, const std::string *nm, const std::str
 	auto hbox2 = new QHBoxLayout;
 	setLayout(vbox);
 
-	auto namelabel = new QLabel("Name");
+	auto namelabel = new QLabel("Description");
+	auto usrnamelabel = new QLabel("User name");
 	auto passlabel = new QLabel("Password");
 	name = new QLineEdit;
+	usrname = new QLineEdit;
 	pass = new QLineEdit;
 	name->setText(nm ? nm->c_str() : "");
+	usrname->setText(un ? un->c_str() : "");
 	pass->setText(pw ? pw->c_str() : "");
 	namelabel->setToolTip(nametip);
+	usrnamelabel->setToolTip(usrtip);
 	passlabel->setToolTip(passtip);
 	name->setToolTip(nametip);
+	usrname->setToolTip(usrtip);
 	pass->setToolTip(passtip);
 	auto ok = new QPushButton("OK");
 	auto cancel = new QPushButton("Cancel");
@@ -143,7 +149,7 @@ AddPassword::AddPassword(Manager &manager, const std::string *nm, const std::str
 	QObject::connect(ok, &QPushButton::clicked, [this](){
 		const QString trimmed_name = name->text().trimmed();
 		if(trimmed_name.length() == 0){
-			QMessageBox::critical(this, "Error", "You cannot leave the Name field blank");
+			QMessageBox::critical(this, "Error", "You cannot leave the Description field blank");
 		}
 		else
 			accept();
@@ -164,6 +170,7 @@ AddPassword::AddPassword(Manager &manager, const std::string *nm, const std::str
 	QObject::connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
 
 	form->addRow(namelabel, name);
+	form->addRow(usrnamelabel, usrname);
 	form->addRow(passlabel, pass);
 	hbox1->addWidget(genrandom);
 	hbox1->addWidget(genmemorable);
@@ -182,6 +189,7 @@ AddPassword::AddPassword(Manager &manager, const std::string *nm, const std::str
 Password AddPassword::password()const{
 	Password pw;
 	pw.set_name(name->text().trimmed().toStdString());
+	pw.set_username(usrname->text().trimmed().toStdString());
 	pw.set_password(pass->text().toStdString());
 
 	return pw;
@@ -195,15 +203,20 @@ ViewPassword::ViewPassword(const Password &passwd, Passwords &parent, Manager &m
 	setWindowTitle(passwd.name().c_str());
 
 	auto vbox = new QVBoxLayout;
-	auto hbox = new QHBoxLayout;
+	auto hboxusername = new QHBoxLayout;
+	auto hboxpassword = new QHBoxLayout;
 	auto editdelete = new QHBoxLayout;
 	setLayout(vbox);
 
-	auto namelabel = new QLabel(("Name: " + passwd.name()).c_str());
+	auto namelabel = new QLabel(("Description: " + passwd.name()).c_str());
+	auto usrnamelabel = new QLabel("User name:");
 	auto passlabel = new QLabel("Password:");
+	auto usrnamefield = new QLineEdit(passwd.username().c_str());
+	usrnamefield->setReadOnly(true);
 	auto passfield = new QLineEdit(passwd.password().c_str());
 	passfield->setReadOnly(true);
 	auto copytoclipboard = new QPushButton(copyto);
+	copytoclipboard->setToolTip("Copy the password to the clipboard");
 	auto edit = new QPushButton("Edit");
 	auto remove = new QPushButton("Delete");
 
@@ -217,15 +230,17 @@ ViewPassword::ViewPassword(const Password &passwd, Passwords &parent, Manager &m
 		});
 	});
 
-	QObject::connect(edit, &QPushButton::clicked, [this, &passwd, &manager, &parent, namelabel, passfield]{
+	QObject::connect(edit, &QPushButton::clicked, [this, &passwd, &manager, &parent, namelabel, usrnamefield, passfield]{
 		try{
 			const std::string name = passwd.name();
+			const std::string username = passwd.username();
 			const std::string pass = passwd.password();
-			AddPassword editpass(manager, &name, &pass);
+			AddPassword editpass(manager, &name, &username, &pass);
 			if(editpass.exec()){
 				const Password &pass = editpass.password();
-				manager.edit(name, pass.name(), pass.password());
-				namelabel->setText(("Name: " + pass.name()).c_str());
+				manager.edit(name, pass.name(), pass.username(), pass.password());
+				namelabel->setText(("Description: " + pass.name()).c_str());
+				usrnamefield->setText(pass.username().c_str());
 				passfield->setText(pass.password().c_str());
 				this->setWindowTitle(pass.name().c_str());
 				parent.refresh();
@@ -248,12 +263,15 @@ ViewPassword::ViewPassword(const Password &passwd, Passwords &parent, Manager &m
 		}
 	});
 
-	hbox->addWidget(passlabel);
-	hbox->addWidget(passfield);
+	hboxusername->addWidget(usrnamelabel);
+	hboxusername->addWidget(usrnamefield);
+	hboxpassword->addWidget(passlabel);
+	hboxpassword->addWidget(passfield);
 	editdelete->addWidget(edit);
 	editdelete->addWidget(remove);
 	vbox->addWidget(namelabel);
-	vbox->addLayout(hbox);
+	vbox->addLayout(hboxusername);
+	vbox->addLayout(hboxpassword);
 	vbox->addItem(new QSpacerItem(0, 20));
 	vbox->addWidget(copytoclipboard);
 	vbox->addLayout(editdelete);

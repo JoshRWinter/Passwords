@@ -10,8 +10,10 @@ public:
 	bool operator==(const Password&)const;
 	bool operator<(const Password&)const;
 	std::string name()const;
+	std::string username()const;
 	std::string password()const;
 	void set_name(const std::string&);
+	void set_username(const std::string&);
 	void set_password(const std::string&);
 	std::string serialize()const;
 	void deserialize(const std::string&);
@@ -20,7 +22,8 @@ private:
 	static std::string escape(const std::string&);
 	static std::string strip(const std::string&);
 
-	std::string nm;
+	std::string nm; // service name
+	std::string un; // user name
 	std::string pass;
 };
 
@@ -32,7 +35,7 @@ public:
 	const std::vector<Password> &get()const;
 	void add(const Password&);
 	const Password &find(const std::string&)const;
-	void edit(const std::string&, const std::string&, const std::string&);
+	void edit(const std::string&, const std::string&, const std::string&, const std::string&);
 	void remove(const std::string&);
 	void master(const std::string&);
 	std::string get_master()const;

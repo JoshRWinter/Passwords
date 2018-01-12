@@ -66,9 +66,12 @@ int run(QApplication &app){
 		// recurse
 		return run(app);
 	}
+	/*
 	catch(const std::exception &e){
-		QMessageBox::critical(NULL, "error", e.what());
+		QMessageBox::critical(NULL, "error", (std::string("") + "A fatal error has occured:\n" + e.what()).c_str());
+		throw;
 	}
+	*/
 
 	return 1;
 }

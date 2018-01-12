@@ -29,10 +29,11 @@ private:
 
 class AddPassword:public QDialog{
 public:
-	AddPassword(Manager &manager, const std::string*, const std::string*);
+	AddPassword(Manager &manager, const std::string*, const std::string*, const std::string*);
 	Password password()const;
 private:
 	QLineEdit *name;
+	QLineEdit *usrname;
 	QLineEdit *pass;
 };
 

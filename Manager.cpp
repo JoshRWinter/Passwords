@@ -88,11 +88,12 @@ const Password &Manager::find(const std::string &name)const{
 	throw ManagerException("Could not find a password with name \"" + name + "\"");
 }
 
-void Manager::edit(const std::string &name, const std::string &newname, const std::string &newpass){
+void Manager::edit(const std::string &name, const std::string &newname, const std::string &newusrname, const std::string &newpass){
 	// find it
 	for(Password &pass : entries){
 		if(name == pass.name()){
 			pass.set_name(newname);
+			pass.set_username(newusrname);
 			pass.set_password(newpass);
 			save();
 			return;
@@ -386,12 +387,20 @@ std::string Password::name()const{
 	return nm;
 }
 
+std::string Password::username()const{
+	return un;
+}
+
 std::string Password::password()const{
 	return pass;
 }
 
 void Password::set_name(const std::string &n){
 	nm = n;
+}
+
+void Password::set_username(const std::string &u){
+	un = u;
 }
 
 void Password::set_password(const std::string &p){
@@ -401,8 +410,9 @@ void Password::set_password(const std::string &p){
 std::string Password::serialize()const{
 	const std::string field_name = Password::escape(nm);
 	const std::string field_pass = Password::escape(pass);
+	const std::string field_usrnm = Password::escape(un);
 
-	return field_name + "," + field_pass + "\n";
+	return field_name + "," + field_usrnm + "," + field_pass + "\n";
 }
 
 void Password::deserialize(const std::string &line){
@@ -425,6 +435,9 @@ void Password::deserialize(const std::string &line){
 					nm = Password::strip(line.substr(start, i - start));
 					break;
 				case 1:
+					un = Password::strip(line.substr(start, i - start));
+					break;
+				case 2:
 					pass = Password::strip(line.substr(start, i - start));
 					break;
 				}
@@ -454,6 +467,7 @@ std::string Password::escape(const std::string &field){
 	return escaped;
 }
 
+// strip escapes
 std::string Password::strip(const std::string &field){
 	std::string stripped = field;
 	for(unsigned i = 0; i < stripped.size(); ++i){
